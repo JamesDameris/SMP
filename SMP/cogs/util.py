@@ -13,9 +13,11 @@ class Utilities(commands.Cog):
     @commands.command(aliases = ["rc"])
     @commands.is_owner()
     async def reloadcogs(self, ctx: commands.context.Context):
+        s = ""
         for ext in self.bot.extensions.keys():
-            self.bot.reload_extension(ext)
-            await ctx.send(f":repeat:{ext}")
+            await self.bot.reload_extension(ext)
+            s += f":repeat:`{ext}`\n\n"
+        await ctx.send(s)
 
 
 async def setup(bot):

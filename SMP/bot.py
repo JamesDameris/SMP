@@ -11,7 +11,7 @@ intents = discord.Intents.all()
 print(intents)
 
 
-class AutoVulnBot(Bot):
+class SIMP(Bot):
     def __init__(self, *args, prefix=None, **kwargs):
         super().__init__(prefix, *args, **kwargs)
         self.invite = None
@@ -69,7 +69,7 @@ class AutoVulnBot(Bot):
         await client.load_extension("jishaku")
 
 
-client = AutoVulnBot(
+client = SIMP(
     intents=intents, prefix=when_mentioned_or("!"), help_command=DefaultPaginatorHelp()
 )
 
