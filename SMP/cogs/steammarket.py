@@ -75,13 +75,13 @@ def wearParser(wear):
     wear = wear.lower()
 
     if wear == "minimalwear":
-        wear = "Minimal Wear"
+        wear = "(Minimal Wear)"
     elif wear == "factorynew":
-        wear = "Factory New"
+        wear = "(Factory New)"
     elif wear == "battlescarred":
-        wear = "Battle-Scarred"
+        wear = "(Battle-Scarred)"
     elif wear == "wellworn":
-        wear = "Well-Worn"
+        wear = "(Well-Worn)"
     elif wear == "fieldtested":
-        wear = "Field-Tested"
+        wear = "(Field-Tested)"
     return wear
