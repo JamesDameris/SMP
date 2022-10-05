@@ -61,3 +61,27 @@ class SteamMarket(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(SteamMarket(bot))
+
+def wearParser(wear):
+    sWear = ""
+    if " " in wear:
+        sWear = wear.split(" ")
+        wear = sWear[0] + sWear[1]
+
+    elif "-" in wear:
+        sWear = wear.split("-")
+        wear = sWear[0] + sWear[1]
+
+    wear = wear.lower()
+
+    if wear == "minimalwear":
+        wear = "Minimal Wear"
+    elif wear == "factorynew":
+        wear = "Factory New"
+    elif wear == "battlescarred":
+        wear = "Battle-Scarred"
+    elif wear == "wellworn":
+        wear = "Well-Worn"
+    elif wear == "fieldtested":
+        wear = "Field-Tested"
+    return wear
