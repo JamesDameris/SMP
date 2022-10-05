@@ -17,9 +17,13 @@ class Utilities(commands.Cog):
     async def reloadcogs(self, ctx: commands.context.Interaction):
         s = ""
         for ext in self.bot.extensions.keys():
-            await self.bot.reload_extension(ext)
-            s += f":repeat:`{ext}`\n\n"
-        await ctx.response.send_message(s)
+            try:
+                await self.bot.reload_extension(ext)
+                s += f":repeat:`{ext}`\n\n"
+            except Exception:
+                s += f":x:`{ext}`]\n\n"
+                raise
+        await ctx.response.send_message(s, ephemeral=True)
 
     @commands.command(aliases=["scg"])
     @commands.is_owner()
