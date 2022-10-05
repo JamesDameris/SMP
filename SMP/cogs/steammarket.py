@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
+from discord import app_commands
 
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
@@ -18,13 +19,15 @@ class SteamMarket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["gip"])
-    @commands.is_owner()
-    async def getitemprice(self, ctx: commands.context.Context, *, name: str, appid: int = 730):
+    @app_commands.command(name="getitemprice", description="Get historical item prices for an item")
+    async def getitemprice(self, ctx: discord.Interaction, *, name: str, appid: int = 730):
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item={urllib.parse.quote_plus(name)}&fill=true&unquote=true"
             async with session.get(url) as resp:
                 zamn = await resp.json()
+        if "error" in zamn:
+            await ctx.response.send_message(f"Cannot find price for {name}. l + ratio + skill issue")
+            return
         df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in zamn], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
         ax = sns.lineplot(data=df, x="Date", y="Price")
@@ -36,7 +39,7 @@ class SteamMarket(commands.Cog):
         # plt.show()
         plt.savefig("tempfigs\\tmfig.png")
         ax.clear()
-        await ctx.send(f"Latest price: ${zamn[-1]['value']}", file=discord.File('tempfigs\\tmfig.png'))
+        await ctx.response.send_message(f"Latest price: ${zamn[-1]['value']}", file=discord.File('tempfigs\\tmfig.png'))
 
 
 async def setup(bot):

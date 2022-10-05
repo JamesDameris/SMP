@@ -21,7 +21,7 @@ class SIMP(Bot):
         pass
 
     async def on_ready(self):
-        self.invite = "https://discord.com/api/oauth2/authorize?client_id=1026972340933894234&permissions=8&scope=bot"
+        self.invite = "https://discord.com/api/oauth2/authorize?client_id=1026972340933894234&permissions=8&scope=applications.commands%20bot"
         print(
             "Logged in as",
             client.user.name,
@@ -74,7 +74,7 @@ client = SIMP(
 )
 
 try:
-    client.run("MTAyNjk3MjM0MDkzMzg5NDIzNA.GeTqhk.u1lJdTqibG5cT3TWstwH5OB-q83mfNNF-Caek4")
+    client.run("MTAyNjk3MjM0MDkzMzg5NDIzNA.GNYEBQ.RQgNCupETGQ8mOHxDpLaUj-L7vxKTavkVj2Fds")
 except:
     print("Bye!")
     raise
