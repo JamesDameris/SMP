@@ -25,12 +25,12 @@ class SteamMarket(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="getitemprice", description="Get historical item prices for an item")
-    async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Optional[typing.Literal[
-        "Minimal Wear", "Factory New", "Battle-Scarred", "Well-Worn", "Field-Tested"
-    ]] = None, appid: int = 730):
+    async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
+        "Minimal Wear", "Factory New", "Battle-Scarred", "Well-Worn", "Field-Tested", "None"
+    ] = None, appid: int = 730):
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
-                  f"{urllib.parse.quote_plus(name+wear if wear is not None else name)}" \
+                  f"{urllib.parse.quote_plus(name+wear if wear!='None' else name)}" \
                   f"&fill=true&unquote=true"
             async with session.get(url) as resp:
                 zamn = await resp.json()
