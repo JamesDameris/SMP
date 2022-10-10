@@ -1,3 +1,6 @@
+import logging
+import traceback
+
 import aiohttp
 import discord
 from discord.ext.commands import *
@@ -16,7 +19,6 @@ class SIMP(Bot):
         super().__init__(prefix, *args, **kwargs)
         self.invite = None
 
-
     async def on_connect(self):
         pass
 
@@ -31,6 +33,8 @@ class SIMP(Bot):
             self.invite,
         )
         print("--------")
+        self.ogerror = self.tree.on_error
+        self.tree.on_error = self.on_app_command_error
 
     async def on_message(self, msg: discord.Message):
         # ctx = await self.get_context(msg)
@@ -45,6 +49,21 @@ class SIMP(Bot):
     async def on_command_error(self, ctx, error):
         await ctx.send(error)
 
+    async def on_app_command_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        print(interaction.type)
+        logging.getLogger("discord").error(traceback.format_exc())
+        if interaction.type == discord.InteractionType.ping:
+            # WHAT THE ACTUAL FUCK THIS SHOULDNT HAPPEN
+            await self.logout()
+        elif interaction.type == discord.InteractionType.application_command and interaction.response.type is None:
+            await interaction.response.send_message(traceback.format_exc())
+        elif interaction.type == discord.InteractionType.application_command and interaction.response.type==discord.InteractionResponseType.channel_message:
+            await interaction.channel.send(traceback.format_exc())
+        elif interaction.type == discord.InteractionType.application_command:
+            await interaction.followup.send(traceback.format_exc())
+        else:
+            await interaction.channel.send(f"Error! {traceback.format_exc()}")
+
     async def process_commands(self, message):
         await super().process_commands(message)
 
@@ -56,6 +75,7 @@ class SIMP(Bot):
                 activity=discord.Game(name=status), status=discord.Status.online
             )
             await asyncio.sleep(120)
+
     async def setup_hook(self):
         nocogs = []
         for file in os.listdir("cogs"):

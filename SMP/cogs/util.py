@@ -5,6 +5,7 @@ import asyncio
 import aiohttp
 import io
 import traceback
+import subprocess as sp
 
 
 class Utilities(commands.Cog):
@@ -20,7 +21,7 @@ class Utilities(commands.Cog):
             try:
                 await self.bot.reload_extension(ext)
                 s += f":repeat:`{ext}`\n\n"
-            except Exception:
+            except:
                 s += f":x:`{ext}`]\n\n"
                 raise
         await ctx.response.send_message(s, ephemeral=True)

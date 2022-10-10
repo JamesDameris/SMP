@@ -13,6 +13,8 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 from discord import app_commands
 from tabulate import tabulate
+import dateutil.parser as duparser
+from datetime import datetime
 
 from pandas.plotting import register_matplotlib_converters
 
@@ -27,16 +29,16 @@ class SteamMarket(commands.Cog):
     @app_commands.command(name="getitemprice", description="Get historical item prices for an item")
     async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         "Minimal Wear", "Factory New", "Battle-Scarred", "Well-Worn", "Field-Tested", "None"
-    ] = None, appid: int = 730):
+    ] = "None", appid: int = 730):
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
-                  f"{urllib.parse.quote_plus(name+wear if wear!='None' else name)}" \
+                  f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
                   f"&fill=true&unquote=true"
             async with session.get(url) as resp:
                 zamn = await resp.json()
-        if "error" in zamn:
-            await ctx.response.send_message(f"Cannot find price for {name}. l + ratio + skill issue")
-            return
+                if resp.status != 200:
+                    await ctx.response.send_message(f"Cannot find price for {name}. l + ratio + skill issue")
+                    return
         df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in zamn], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
         ax = sns.lineplot(data=df, x="Date", y="Price")
@@ -58,9 +60,44 @@ class SteamMarket(commands.Cog):
         embed.add_field(name="Recent History", value=table, inline=False)
         await ctx.response.send_message(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
+    @app_commands.command(name="portfolioprice")
+    async def portfolioprice(self, ctx: discord.Interaction, steamid: str, appid: int = 730):
+        try:
+            steamid = int(steamid)
+        except ValueError:
+            await ctx.response.send_message("That ID isn't a number. smh my head")
+            return
+
+        await ctx.response.defer(thinking=True)
+
+        async with aiohttp.ClientSession() as session:
+            url = f"https://steamcommunity.com/inventory/{steamid}/{appid}/2?l=english"
+            pdata = []
+            async with session.get(url) as resp:
+                zamn = await resp.json()
+                if resp.status != 200:
+                    await ctx.response.send_message(f"Cannot find price for user {steamid} and game {appid}."
+                                                    "l + ratio + skill issue")
+                    return
+                names = [x["market_hash_name"] for x in zamn["descriptions"] if "market_hash_name" in x]
+            for name in names:
+                url2 = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
+                       f"{urllib.parse.quote_plus(name)}" \
+                       f"&fill=true&unquote=true"
+
+                async with session.get(url2) as resp:
+                    pdata.append(await resp.json())
+                await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
+        datezamn = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+
+
+        await ctx.followup.send(content=datezamn.strftime("%Y-%m-%d"))
+        print([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+
 
 async def setup(bot):
     await bot.add_cog(SteamMarket(bot))
+
 
 def wearParser(wear):
     if wear == "":
