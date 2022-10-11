@@ -31,6 +31,7 @@ class SteamMarket(commands.Cog):
     async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         "Minimal Wear", "Factory New", "Battle-Scarred", "Well-Worn", "Field-Tested", "None"
     ] = "None", appid: int = 730):
+        name = name.title()
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                   f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
