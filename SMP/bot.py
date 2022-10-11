@@ -57,7 +57,7 @@ class SIMP(Bot):
             await self.logout()
         elif interaction.type == discord.InteractionType.application_command and interaction.response.type is None:
             await interaction.response.send_message(traceback.format_exc())
-        elif interaction.type == discord.InteractionType.application_command and interaction.response.type==discord.InteractionResponseType.channel_message:
+        elif interaction.type == discord.InteractionType.application_command and interaction.response.type == discord.InteractionResponseType.channel_message:
             await interaction.channel.send(traceback.format_exc())
         elif interaction.type == discord.InteractionType.application_command:
             await interaction.followup.send(traceback.format_exc())

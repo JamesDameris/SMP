@@ -15,6 +15,7 @@ from discord import app_commands
 from tabulate import tabulate
 import dateutil.parser as duparser
 from datetime import datetime
+import datetime
 
 from pandas.plotting import register_matplotlib_converters
 
@@ -89,6 +90,8 @@ class SteamMarket(commands.Cog):
                     pdata.append(await resp.json())
                 await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
         datezamn = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+        datearr = []
+        dr = 0
 
 
         await ctx.followup.send(content=datezamn.strftime("%Y-%m-%d"))

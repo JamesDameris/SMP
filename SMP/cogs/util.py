@@ -11,7 +11,6 @@ import subprocess as sp
 class Utilities(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
     @app_commands.command(name="reloadcogs",
                           description="Reloads cogs (used for rapid development of commands without restarting bot")
     @commands.is_owner()
