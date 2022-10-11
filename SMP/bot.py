@@ -94,7 +94,10 @@ client = SIMP(
 )
 
 try:
-    client.run("MTAyNjk3MjM0MDkzMzg5NDIzNA.GNYEBQ.RQgNCupETGQ8mOHxDpLaUj-L7vxKTavkVj2Fds")
+    with open("token.txt") as f:
+        client.run(f.read().replace("\n", "").replace("\r", ""))
+except FileNotFoundError:
+    print("create token.txt")
 except:
     print("Bye!")
     raise
