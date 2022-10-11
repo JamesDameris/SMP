@@ -36,11 +36,11 @@ class SteamMarket(commands.Cog):
                   f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
                   f"&fill=true&unquote=true"
             async with session.get(url) as resp:
-                zamn = await resp.json()
+                jsonresp = await resp.json()
                 if resp.status != 200:
-                    await ctx.response.send_message(f"Cannot find price for {name}. l + ratio + skill issue")
+                    await ctx.response.send_message(f"Cannot find price for {name}.")
                     return
-        df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in zamn], columns=["Date", "Price"])
+        df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in jsonresp], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
         ax = sns.lineplot(data=df, x="Date", y="Price")
         ax.set(title="Price vs Time", ylabel="Price ($)")
@@ -55,9 +55,9 @@ class SteamMarket(commands.Cog):
         ax.clear()
         embed = discord.Embed(color=0x00CFFF, title=f"Data for {name}")
         embed.set_image(url=f"attachment://graph.png")
-        embed.add_field(name="Current Price", value=zamn[-1]['value'])
-        table = tabulate([[x["value"]] for x in zamn[-7:]], tablefmt="grid",
-                         showindex=[x["date"] for x in zamn[-7:]])
+        embed.add_field(name="Current Price", value=jsonresp[-1]['value'])
+        table = tabulate([[x["value"]] for x in jsonresp[-7:]], tablefmt="grid",
+                         showindex=[x["date"] for x in jsonresp[-7:]])
         embed.add_field(name="Recent History", value=table, inline=False)
         await ctx.response.send_message(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
@@ -66,7 +66,7 @@ class SteamMarket(commands.Cog):
         try:
             steamid = int(steamid)
         except ValueError:
-            await ctx.response.send_message("That ID isn't a number. smh my head")
+            await ctx.response.send_message("That ID isn't a number.")
             return
 
         await ctx.response.defer(thinking=True)
@@ -75,12 +75,11 @@ class SteamMarket(commands.Cog):
             url = f"https://steamcommunity.com/inventory/{steamid}/{appid}/2?l=english"
             pdata = []
             async with session.get(url) as resp:
-                zamn = await resp.json()
+                jsonresp = await resp.json()
                 if resp.status != 200:
-                    await ctx.response.send_message(f"Cannot find price for user {steamid} and game {appid}."
-                                                    "l + ratio + skill issue")
+                    await ctx.response.send_message(f"Cannot find price for user {steamid} and game {appid}.")
                     return
-                names = [x["market_hash_name"] for x in zamn["descriptions"] if "market_hash_name" in x]
+                names = [x["market_hash_name"] for x in jsonresp["descriptions"] if "market_hash_name" in x]
             for name in names:
                 url2 = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                        f"{urllib.parse.quote_plus(name)}" \
@@ -89,12 +88,12 @@ class SteamMarket(commands.Cog):
                 async with session.get(url2) as resp:
                     pdata.append(await resp.json())
                 await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
-        datezamn = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+        datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
         datearr = []
         dr = 0
 
 
-        await ctx.followup.send(content=datezamn.strftime("%Y-%m-%d"))
+        await ctx.followup.send(content=datelatest.strftime("%Y-%m-%d"))
         print([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
 
 
