@@ -16,6 +16,7 @@ from tabulate import tabulate
 import dateutil.parser as duparser
 from datetime import datetime
 import datetime
+from selenium import webdriver as web
 
 from pandas.plotting import register_matplotlib_converters
 
@@ -29,7 +30,7 @@ class SteamMarket(commands.Cog):
 
     @app_commands.command(name="getitemprice", description="Get historical item prices for an item")
     async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
-        "Minimal Wear", "Factory New", "Battle-Scarred", "Well-Worn", "Field-Tested", "None"
+        " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
@@ -39,7 +40,7 @@ class SteamMarket(commands.Cog):
                 jsonresp = await resp.json()
                 if resp.status != 200:
                     await ctx.response.send_message(f"Cannot find price for {name}.")
-                    return
+                    return          
         df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in jsonresp], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
         ax = sns.lineplot(data=df, x="Date", y="Price")
