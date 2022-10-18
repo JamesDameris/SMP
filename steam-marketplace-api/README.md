@@ -42,3 +42,6 @@ The endpoint receive two parameters:
 - [https://developer.valvesoftware.com/wiki/Steam_Web_API](https://developer.valvesoftware.com/wiki/Steam_Web_API)
 - [https://partner.steamgames.com/doc/webapi_overview](https://partner.steamgames.com/doc/webapi_overview)
 - [https://developer.valvesoftware.com/wiki/Steam_Application_IDs](https://developer.valvesoftware.com/wiki/Steam_Application_IDs)
+
+## Steam Marketplace API Github
+- [https://github.com/samuelcsouza/steam-marketplace-api](https://github.com/samuelcsouza/steam-marketplace-api)
