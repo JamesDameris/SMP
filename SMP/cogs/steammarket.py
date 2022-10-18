@@ -86,18 +86,17 @@ class SteamMarket(commands.Cog):
                 url2 = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                        f"{urllib.parse.quote_plus(name)}" \
                        f"&fill=true&unquote=true"
-                print(name)
                 resp.status = 100
-                while resp.status!=200:
+                while resp.status != 200:
                     async with session.get(url2) as resp:
                         if resp.status != 200:
-                            await ctx.channel.send(f":x:`Could not find data for {name}`")
+                            await ctx.channel.send(f":x:`Rate limited... Waiting for {name}`")
+                            await asyncio.sleep(5)
                             continue
-                        print(await resp.json())
                         pdata.append({(datetime.strptime(x["date"], "%Y-%m-%d"), print(x, name))[0]: x["value"] for x in
                                       await resp.json()})
                         pdata2.append(await resp.json())
-                    await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
+                await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
         datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata2])
         datearr = []
         dr = datelatest

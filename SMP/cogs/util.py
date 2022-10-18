@@ -11,6 +11,7 @@ import subprocess as sp
 class Utilities(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
     @app_commands.command(name="reloadcogs",
                           description="Reloads cogs (used for rapid development of commands without restarting bot")
     @commands.is_owner()
@@ -36,6 +37,7 @@ class Utilities(commands.Cog):
     async def syncall(self, ctx: commands.context.Context):
         await self.bot.tree.sync()
         await ctx.send("Done!")
+
 
 async def setup(bot):
     await bot.add_cog(Utilities(bot))
