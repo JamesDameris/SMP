@@ -4,6 +4,7 @@ import traceback
 import aiohttp
 import discord
 from discord.ext.commands import *
+from discord.ext import tasks
 from jishaku.help_command import *
 import io
 import asyncio
@@ -18,6 +19,13 @@ class SIMP(Bot):
     def __init__(self, *args, prefix=None, **kwargs):
         super().__init__(prefix, *args, **kwargs)
         self.invite = None
+        self.watchusers = []
+
+    @tasks.loop(seconds=86400)
+    async def watchprice(self):
+        for i in self.watchusers:
+            user = await self.fetch_user(i[0])
+            await user.send(i[1])
 
     async def on_connect(self):
         pass
@@ -35,6 +43,7 @@ class SIMP(Bot):
         print("--------")
         self.ogerror = self.tree.on_error
         self.tree.on_error = self.on_app_command_error
+        await self.watchprice.start()
 
     async def on_message(self, msg: discord.Message):
         # ctx = await self.get_context(msg)

@@ -62,6 +62,17 @@ class SteamMarket(commands.Cog):
         embed.add_field(name="Recent History", value=table, inline=False)
         await ctx.response.send_message(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
+    @app_commands.command(name="watchprice", description="alert bot to watch an item and DM that price daily.")
+    async def watchprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
+        " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
+    ] = "None", appid: int = 730):
+        url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
+                  f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
+                  f"&fill=true&unquote=true"
+        self.bot.watchusers.append((ctx.user.id, url))
+        await ctx.response.send_message("added to list")
+        
+
     @app_commands.command(name="portfolioprice")
     async def portfolioprice(self, ctx: discord.Interaction, steamid: str, appid: int = 730):
         try:
