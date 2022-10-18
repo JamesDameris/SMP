@@ -15,7 +15,7 @@ from discord import app_commands
 from tabulate import tabulate
 import dateutil.parser as duparser
 from datetime import datetime
-import datetime
+import datetime as dt
 from selenium import webdriver as web
 
 from pandas.plotting import register_matplotlib_converters
@@ -28,8 +28,8 @@ class SteamMarket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="getitemprice", description="Get historical item prices for an item")
-    async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
+    @app_commands.command(name="getitemhistory", description="Get historical item prices for an item")
+    async def getitemphistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
         async with aiohttp.ClientSession() as session:
@@ -40,7 +40,7 @@ class SteamMarket(commands.Cog):
                 jsonresp = await resp.json()
                 if resp.status != 200:
                     await ctx.response.send_message(f"Cannot find price for {name}.")
-                    return          
+                    return
         df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in jsonresp], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
         ax = sns.lineplot(data=df, x="Date", y="Price")
@@ -75,6 +75,7 @@ class SteamMarket(commands.Cog):
         async with aiohttp.ClientSession() as session:
             url = f"https://steamcommunity.com/inventory/{steamid}/{appid}/2?l=english"
             pdata = []
+            pdata2 = []
             async with session.get(url) as resp:
                 jsonresp = await resp.json()
                 if resp.status != 200:
@@ -85,17 +86,41 @@ class SteamMarket(commands.Cog):
                 url2 = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                        f"{urllib.parse.quote_plus(name)}" \
                        f"&fill=true&unquote=true"
-
-                async with session.get(url2) as resp:
-                    pdata.append(await resp.json())
-                await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
-        datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+                print(name)
+                resp.status = 100
+                while resp.status!=200:
+                    async with session.get(url2) as resp:
+                        if resp.status != 200:
+                            await ctx.channel.send(f":x:`Could not find data for {name}`")
+                            continue
+                        print(await resp.json())
+                        pdata.append({(datetime.strptime(x["date"], "%Y-%m-%d"), print(x, name))[0]: x["value"] for x in
+                                      await resp.json()})
+                        pdata2.append(await resp.json())
+                    await ctx.channel.send(f":white_check_mark:`Got data for {name}`")'''
+        datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata2])
         datearr = []
-        dr = 0
+        dr = datelatest
+        while dr <= datetime.now():
+            datearr.append((dr, sum([(x[dr] if dr in x else 0) for x in pdata])))
+            dr += dt.timedelta(days=1)
 
+        df = pd.DataFrame(datearr, columns=["Date", "Price"])
+        df["Date"] = pd.to_datetime(df["Date"])
+        ax = sns.lineplot(data=df, x="Date", y="Price")
+        ax.set(title="Price vs Time", ylabel="Price ($)")
+        plt.xticks(rotation=20)
+        ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 
-        await ctx.followup.send(content=datelatest.strftime("%Y-%m-%d"))
-        print([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata])
+        stream = io.BytesIO()
+        plt.savefig(stream, format="png")
+        stream.seek(0)
+        ax.clear()
+        embed = discord.Embed(color=0x00CFFF, title=f"Data for your inventory")
+        embed.set_image(url=f"attachment://graph.png")
+        embed.add_field(name="Current Price", value=datearr[-1][1])
+        await ctx.followup.send(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
 
 async def setup(bot):
