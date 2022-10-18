@@ -29,7 +29,7 @@ class SteamMarket(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="getitemhistory", description="Get historical item prices for an item")
-    async def getitemphistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
+    async def getitemhistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
         async with aiohttp.ClientSession() as session:
@@ -97,7 +97,7 @@ class SteamMarket(commands.Cog):
                         pdata.append({(datetime.strptime(x["date"], "%Y-%m-%d"), print(x, name))[0]: x["value"] for x in
                                       await resp.json()})
                         pdata2.append(await resp.json())
-                    await ctx.channel.send(f":white_check_mark:`Got data for {name}`")'''
+                    await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
         datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata2])
         datearr = []
         dr = datelatest
