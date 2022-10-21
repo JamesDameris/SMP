@@ -28,12 +28,15 @@ Class project for transforming the CSGO item trading experience into a more prof
 **Parameters** 
 
   Name: name of CSGO Item, 
+  
   APPID: game's steam ID (CSGO as default parameter), 
+  
   Wear: 5 item qualities of the CSGO weapon skin that can be chosen from (required for weapons, not used for cases)
   
 ### Example 1 ###
 
   ***Name:*** P90 | Asiimov
+  
   ***Wear:*** (Minimal Wear)
 
 ### Example 2 ###
