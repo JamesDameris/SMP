@@ -14,27 +14,34 @@ Class project for transforming the CSGO item trading experience into a more prof
 3. Run ```python bot.py```
 4. In discord use !syncall 
 5. You can now use the supplied slash commands
-**NOTE:** use ```docker compose down``` to stop docker from running when you are done 
+
+**NOTE:** use ```docker compose down``` to end docker when you are done
 
 # Commands #
-/getitemhistory 
+
+## /getitemhistory ##
 
 **Description** 
   Returns the item's current price, price history in a list, and larger price histroy in a graph
 
 **Parameters** 
+
   Name: name of CSGO Item, 
   APPID: game's steam ID (CSGO as default parameter), 
   Wear: 5 item qualities of the CSGO weapon skin that can be chosen from (required for weapons, not used for cases)
   
 -- Example 1 --
+
   Name: P90 | Asiimov
   Wear: (Minimal Wear)
 
 -- Example 2 --
+
   Name: Recoil Case
 
-/reloadcog 
+
+## /reloadcog ## 
 
 **Description**
-  only used for debugging
+
+  Only used for debugging
