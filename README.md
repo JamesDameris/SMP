@@ -22,6 +22,7 @@ Class project for transforming the CSGO item trading experience into a more prof
 ## /getitemhistory ##
 
 **Description** 
+
   Returns the item's current price, price history in a list, and larger price histroy in a graph
 
 **Parameters** 
