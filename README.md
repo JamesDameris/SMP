@@ -33,12 +33,12 @@ Class project for transforming the CSGO item trading experience into a more prof
   
 ### Example 1 ###
 
-  Name: P90 | Asiimov
-  Wear: (Minimal Wear)
+  ***Name:*** P90 | Asiimov
+  ***Wear:*** (Minimal Wear)
 
 ### Example 2 ###
 
-  Name: Recoil Case
+  ***Name:*** Recoil Case
 
 
 ## /reloadcog ## 
