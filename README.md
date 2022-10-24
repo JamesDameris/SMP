@@ -49,3 +49,7 @@ Class project for transforming the CSGO item trading experience into a more prof
 **Description**
 
   Only used for debugging
+  
+  
+  
+Steam-marketplace-api : https://github.com/samuelcsouza/steam-marketplace-api
