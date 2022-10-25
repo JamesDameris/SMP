@@ -19,13 +19,18 @@ class SIMP(Bot):
     def __init__(self, *args, prefix=None, **kwargs):
         super().__init__(prefix, *args, **kwargs)
         self.invite = None
-        self.watchusers = []
+        self.watchusers = [(138121247585206272, "http://127.0.0.1:8002/marketplace/730?item=P90+%7C+Asiimov+%28Factory+New%29&fill=true&unquote=true", "P90 | Asiimov (Factory New)")]
 
     @tasks.loop(seconds=86400)
     async def watchprice(self):
         for i in self.watchusers:
             user = await self.fetch_user(i[0])
-            await user.send(i[1])
+            async with aiohttp.ClientSession() as session:
+                async with session.get(i[1]) as resp:
+                    jsonresp = await resp.json()
+            embed = discord.Embed(color=0x00CFFF, title=f"Data for {i[2]}")
+            embed.add_field(name="Current Price", value=jsonresp[-1]['value'])
+            await user.send(embed=embed)
 
     async def on_connect(self):
         pass

@@ -66,12 +66,19 @@ class SteamMarket(commands.Cog):
     async def watchprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
-        url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
+        async with aiohttp.ClientSession() as session:
+            url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                   f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
                   f"&fill=true&unquote=true"
-        self.bot.watchusers.append((ctx.user.id, url))
+            async with session.get(url) as resp:
+                    jsonresp = await resp.json()
+                    if resp.status != 200:
+                        await ctx.response.send_message(f"Cannot find price for {name}.")
+                        return
+        self.bot.watchusers.append((ctx.user.id, url, name))
         await ctx.response.send_message("added to list")
         
+
 
     @app_commands.command(name="portfolioprice")
     async def portfolioprice(self, ctx: discord.Interaction, steamid: str, appid: int = 730):
@@ -90,7 +97,7 @@ class SteamMarket(commands.Cog):
             async with session.get(url) as resp:
                 jsonresp = await resp.json()
                 if resp.status != 200:
-                    await ctx.response.send_message(f"Cannot find price for user {steamid} and game {appid}.")
+                    await ctx.response.send_message(f"Cannot find user {steamid} or game {appid}.")
                     return
                 names = [x["market_hash_name"] for x in jsonresp["descriptions"] if "market_hash_name" in x]
             for name in names:
