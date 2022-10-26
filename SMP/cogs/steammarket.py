@@ -17,6 +17,7 @@ import dateutil.parser as duparser
 from datetime import datetime
 import datetime as dt
 from selenium import webdriver as web
+import requests
 
 from pandas.plotting import register_matplotlib_converters
 
@@ -28,18 +29,36 @@ class SteamMarket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def search_match(self, name: str, appid) -> str:
+        result = requests.get(
+            "https://steamcommunity.com/market/search/render/",
+            {
+                "norender": 1,
+                "appid": appid,
+                "query": name,
+                "start": 0,
+                "count": 1
+            }
+        )
+        if result.status_code != 200:
+            return name
+        jresult = result.json()
+        return jresult["results"][0]["name"]
+
     @app_commands.command(name="getitemhistory", description="Get historical item prices for an item")
     async def getitemhistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
+        namewear = (name + wear) if wear != 'None' else name
+        itemname = self.search_match(namewear, appid)
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
-                  f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
+                  f"{urllib.parse.quote_plus(itemname)}" \
                   f"&fill=true&unquote=true"
             async with session.get(url) as resp:
                 jsonresp = await resp.json()
                 if resp.status != 200:
-                    await ctx.response.send_message(f"Cannot find price for {name}.")
+                    await ctx.response.send_message(f"Cannot find price for {itemname}.")
                     return
         df = pd.DataFrame([(str(i["date"]), float(i["value"])) for i in jsonresp], columns=["Date", "Price"])
         df["Date"] = pd.to_datetime(df["Date"])
@@ -54,7 +73,7 @@ class SteamMarket(commands.Cog):
         plt.savefig(stream, format="png")
         stream.seek(0)
         ax.clear()
-        embed = discord.Embed(color=0x00CFFF, title=f"Data for {name}")
+        embed = discord.Embed(color=0x00CFFF, title=f"Data for {itemname}")
         embed.set_image(url=f"attachment://graph.png")
         embed.add_field(name="Current Price", value=jsonresp[-1]['value'])
         table = tabulate([[x["value"]] for x in jsonresp[-7:]], tablefmt="grid",
@@ -66,18 +85,20 @@ class SteamMarket(commands.Cog):
     async def watchprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
+        namewear = name + wear if wear != 'None' else name
+        itemname = self.search_match(namewear, appid)
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
-                  f"{urllib.parse.quote_plus(name + wear if wear != 'None' else name)}" \
+                  f"{urllib.parse.quote_plus(itemname)}" \
                   f"&fill=true&unquote=true"
             async with session.get(url) as resp:
                     jsonresp = await resp.json()
                     if resp.status != 200:
-                        await ctx.response.send_message(f"Cannot find price for {name}.")
+                        await ctx.response.send_message(f"Cannot find price for {itemname}.")
                         return
-        self.bot.watchusers.append((ctx.user.id, url, name))
+        self.bot.watchusers.append((ctx.user.id, url, itemname))
         await ctx.response.send_message("added to list")
-        
+
 
 
     @app_commands.command(name="portfolioprice")
