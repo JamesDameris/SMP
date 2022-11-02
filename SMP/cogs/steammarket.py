@@ -45,7 +45,6 @@ class SteamMarket(commands.Cog):
         jresult = result.json()
         return jresult["results"][0]["name"]
 
-    @app_commands.command(name="getitemhistory", description="Get historical item prices for an item")
     async def getitemhistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
@@ -81,7 +80,8 @@ class SteamMarket(commands.Cog):
         embed.add_field(name="Recent History", value=table, inline=False)
         await ctx.response.send_message(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
-    @app_commands.command(name="watchprice", description="alert bot to watch an item and DM that price daily.")
+    getitemhistorycommand = app_commands.command(name="getitemhistory", description="Get historical item prices for an item")(getitemhistory)
+    
     async def watchprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
@@ -99,9 +99,8 @@ class SteamMarket(commands.Cog):
         self.bot.watchusers.append((ctx.user.id, url, itemname))
         await ctx.response.send_message("added to list")
 
+    watchpricecommand = app_commands.command(name="watchprice", description="alert bot to watch an item and DM that price daily.")(watchprice)
 
-
-    @app_commands.command(name="portfolioprice")
     async def portfolioprice(self, ctx: discord.Interaction, steamid: str, appid: int = 730):
         try:
             steamid = int(steamid)
@@ -115,27 +114,40 @@ class SteamMarket(commands.Cog):
             url = f"https://steamcommunity.com/inventory/{steamid}/{appid}/2?l=english"
             pdata = []
             pdata2 = []
+            msg = None
             async with session.get(url) as resp:
                 jsonresp = await resp.json()
                 if resp.status != 200:
+                    print(resp.status)
                     await ctx.response.send_message(f"Cannot find user {steamid} or game {appid}.")
                     return
-                names = [x["market_hash_name"] for x in jsonresp["descriptions"] if "market_hash_name" in x]
+                names = [x["market_hash_name"] for x in jsonresp["descriptions"] if "market_hash_name" in x and x["marketable"]==1]
             for name in names:
                 url2 = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                        f"{urllib.parse.quote_plus(name)}" \
                        f"&fill=true&unquote=true"
                 resp.status = 100
+                await asyncio.sleep(5)
                 while resp.status != 200:
                     async with session.get(url2) as resp:
                         if resp.status != 200:
-                            await ctx.channel.send(f":x:`Rate limited... Waiting for {name}`")
+                            print(resp.status)
+                            try:
+                                await msg.delete()
+                            except:
+                                pass
+                            msg = await ctx.channel.send(f":x:`Rate limited... Waiting for {name}`")
                             await asyncio.sleep(5)
                             continue
                         pdata.append({(datetime.strptime(x["date"], "%Y-%m-%d"), print(x, name))[0]: x["value"] for x in
                                       await resp.json()})
                         pdata2.append(await resp.json())
-                await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
+                try:
+                    await msg.delete()
+                except:
+                    pass
+                msg = await ctx.channel.send(f":white_check_mark:`Got data for {name}`")
+            await msg.delete()
         datelatest = min([datetime.strptime(x[0]["date"], "%Y-%m-%d") for x in pdata2])
         datearr = []
         dr = datelatest
@@ -160,6 +172,7 @@ class SteamMarket(commands.Cog):
         embed.add_field(name="Current Price", value=datearr[-1][1])
         await ctx.followup.send(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
+    portfoliopricecommand = app_commands.command(name="portfolioprice")(portfolioprice)
 
 async def setup(bot):
     await bot.add_cog(SteamMarket(bot))
