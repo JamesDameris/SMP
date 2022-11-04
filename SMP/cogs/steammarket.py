@@ -81,7 +81,7 @@ class SteamMarket(commands.Cog):
         await ctx.response.send_message(file=discord.File(stream, filename=f"graph.png"), embed=embed)
 
     getitemhistorycommand = app_commands.command(name="getitemhistory", description="Get historical item prices for an item")(getitemhistory)
-    
+
     async def watchprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
@@ -190,16 +190,18 @@ def wearParser(wear):
         sWear = wear.split("-")
         wear = sWear[0] + sWear[1]
 
-    wear = wear.lower()
+    wear_l = wear.lower()
 
-    if wear == "minimalwear":
-        wear = "(Minimal Wear)"
-    elif wear == "factorynew":
-        wear = "(Factory New)"
-    elif wear == "battlescarred":
-        wear = "(Battle-Scarred)"
-    elif wear == "wellworn":
-        wear = "(Well-Worn)"
-    elif wear == "fieldtested":
-        wear = "(Field-Tested)"
-    return wear
+    if wear_l == "minimalwear":
+        wear_l = "(Minimal Wear)"
+    elif wear_l == "factorynew":
+        wear_l = "(Factory New)"
+    elif wear_l == "battlescarred":
+        wear_l = "(Battle-Scarred)"
+    elif wear_l == "wellworn":
+        wear_l = "(Well-Worn)"
+    elif wear_l == "fieldtested":
+        wear_l = "(Field-Tested)"
+    else:
+        return wear
+    return wear_l
