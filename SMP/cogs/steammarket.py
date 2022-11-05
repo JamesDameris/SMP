@@ -25,31 +25,31 @@ register_matplotlib_converters()
 pd.plotting.plot_params = {'x_compat': True}
 
 
+def search_match(name: str, appid) -> str:
+    result = requests.get(
+        "https://steamcommunity.com/market/search/render/",
+        {
+            "norender": 1,
+            "appid": appid,
+            "query": name,
+            "start": 0,
+            "count": 1
+        }
+    )
+    if result.status_code != 200:
+        return name
+    jresult = result.json()
+    return jresult["results"][0]["name"]
+
 class SteamMarket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    def search_match(self, name: str, appid) -> str:
-        result = requests.get(
-            "https://steamcommunity.com/market/search/render/",
-            {
-                "norender": 1,
-                "appid": appid,
-                "query": name,
-                "start": 0,
-                "count": 1
-            }
-        )
-        if result.status_code != 200:
-            return name
-        jresult = result.json()
-        return jresult["results"][0]["name"]
 
     async def getitemhistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
         namewear = (name + wear) if wear != 'None' else name
-        itemname = self.search_match(namewear, appid)
+        itemname = search_match(namewear, appid)
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                   f"{urllib.parse.quote_plus(itemname)}" \
@@ -86,7 +86,7 @@ class SteamMarket(commands.Cog):
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
     ] = "None", appid: int = 730):
         namewear = name + wear if wear != 'None' else name
-        itemname = self.search_match(namewear, appid)
+        itemname = search_match(namewear, appid)
         async with aiohttp.ClientSession() as session:
             url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
                   f"{urllib.parse.quote_plus(itemname)}" \

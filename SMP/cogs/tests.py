@@ -28,6 +28,13 @@ class TestCogs(unittest.TestCase):
         self.assertEqual("(Field-Tested)", wearParser("Field Tested"))
         self.assertEqual("(Field-Tested)", wearParser("Field-Tested"))
 
+    def test_search_match(self):
+        self.assertEqual("P90 | Asiimov (Factory New)", search_match(name="new p90 asiimov", appid=730))
+        self.assertEqual("Sticker | LGB eSports | Katowice 2015", search_match(name="lgb esports katowice 2015 sticker", appid=730))
+        self.assertEqual("Antwerp 2022 Legends Sticker Capsule", search_match(name="antwerp 2022 sticker capsule legends", appid=730))
+        self.assertEqual("AK-47 | Ice Coaled (Field-Tested)", search_match(name="ak-47 ice coaled field tested", appid=730))
+        self.assertEqual("Recoil Case", search_match(name="recoil case", appid=730))
+
 
 
 if __name__ == '__main__':
