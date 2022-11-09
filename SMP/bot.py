@@ -91,7 +91,7 @@ class SIMP(Bot):
             await asyncio.sleep(120)
 
     async def setup_hook(self):
-        nocogs = []
+        nocogs = ["tests"]
         for file in os.listdir("cogs"):
             if file.endswith(".py") and not (file[:-3] in nocogs):
                 name = file[:-3]

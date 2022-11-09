@@ -16,8 +16,10 @@ from tabulate import tabulate
 import dateutil.parser as duparser
 from datetime import datetime
 import datetime as dt
-from selenium import webdriver as web
 import requests
+import shutil
+from bs4 import BeautifulSoup
+from lxml import etree
 
 from pandas.plotting import register_matplotlib_converters
 
@@ -44,6 +46,35 @@ def search_match(name: str, appid) -> str:
 class SteamMarket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def getitemprice(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
+        " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
+    ] = "None", appid: int = 730):
+        namewear = (name + wear) if wear != 'None' else name
+        itemname = search_match(namewear, appid)
+        async with aiohttp.ClientSession() as session:
+            url = f"http://127.0.0.1:8002/marketplace/{appid}?item=" \
+                  f"{urllib.parse.quote_plus(itemname)}" \
+                  f"&fill=true&unquote=true"
+            async with session.get(url) as resp:
+                jsonresp = await resp.json()
+                if resp.status != 200:
+                    await ctx.response.send_message(f"Cannot find price for {itemname}.")
+                    return
+        
+        stream = io.BytesIO()
+        image_url = f"https://steamcommunity.com/market/listings/{appid}/" \
+                    f"{urllib.parse.quote(itemname)}"
+        r = requests.get(image_url, stream = True)
+        soup = BeautifulSoup(r.content, "html.parser")
+        dom = etree.HTML(str(soup))
+        image_xpath_url = dom.xpath("//*[@id=\"mainContents\"]/div[2]/div/div[1]/img/@src")
+        embed = discord.Embed(color=0x00CFFF, title=f"Data for {itemname}")
+        embed.set_image(url=image_xpath_url[0])
+        embed.add_field(name="Current Price", value=jsonresp[-1]['value'])
+        await ctx.response.send_message(embed=embed)
+
+    getitempricecommand = app_commands.command(name="getitemprice", description="Get historical item prices for an item")(getitemprice)
 
     async def getitemhistory(self, ctx: discord.Interaction, *, name: str, wear: typing.Literal[
         " (Minimal Wear)", " (Factory New)", " (Battle-Scarred)", " (Well-Worn)", " (Field-Tested)", "None"
