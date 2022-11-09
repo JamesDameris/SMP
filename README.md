@@ -19,6 +19,22 @@ Class project for transforming the CSGO item trading experience into a more prof
 
 # Commands #
 
+## /getitemprice ##
+
+**Description** 
+
+  Returns the item's current price and image
+
+**Parameters** 
+
+  Name: name of CSGO Item, 
+  
+  APPID: game's steam ID (CSGO as default parameter), 
+  
+  Wear: 5 item qualities of the CSGO weapon skin that can be chosen from (required for weapons, not used for cases)
+  
+  
+
 ## /getitemhistory ##
 
 **Description** 
