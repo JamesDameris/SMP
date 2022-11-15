@@ -1,6 +1,7 @@
+import math
 import re
 from collections import OrderedDict, deque
-from collections.abc import Hashable
+from collections.abc import Hashable as CollectionsHashable
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, DecimalException
 from enum import Enum, IntEnum
@@ -12,8 +13,10 @@ from typing import (
     Callable,
     Deque,
     Dict,
+    ForwardRef,
     FrozenSet,
     Generator,
+    Hashable,
     List,
     NamedTuple,
     Pattern,
@@ -25,28 +28,26 @@ from typing import (
 )
 from uuid import UUID
 
-from typing_extensions import Literal
-
 from . import errors
 from .datetime_parse import parse_date, parse_datetime, parse_duration, parse_time
 from .typing import (
-    NONE_TYPES,
     AnyCallable,
-    ForwardRef,
     all_literal_values,
     display_as_type,
     get_class,
     is_callable_type,
     is_literal_type,
     is_namedtuple,
+    is_none_type,
     is_typeddict,
 )
 from .utils import almost_equal_floats, lenient_issubclass, sequence_like
 
 if TYPE_CHECKING:
-    from .annotated_types import TypedDict
+    from typing_extensions import Literal, TypedDict
+
+    from .config import BaseConfig
     from .fields import ModelField
-    from .main import BaseConfig
     from .types import ConstrainedDecimal, ConstrainedFloat, ConstrainedInt
 
     ConstrainedNumber = Union[ConstrainedDecimal, ConstrainedFloat, ConstrainedInt]
@@ -71,12 +72,12 @@ def str_validator(v: Any) -> Union[str]:
 
 
 def strict_str_validator(v: Any) -> Union[str]:
-    if isinstance(v, str):
+    if isinstance(v, str) and not isinstance(v, Enum):
         return v
     raise errors.StrError()
 
 
-def bytes_validator(v: Any) -> bytes:
+def bytes_validator(v: Any) -> Union[bytes]:
     if isinstance(v, bytes):
         return v
     elif isinstance(v, bytearray):
@@ -119,13 +120,26 @@ def bool_validator(v: Any) -> bool:
     raise errors.BoolError()
 
 
+# matches the default limit cpython, see https://github.com/python/cpython/pull/96500
+max_str_int = 4_300
+
+
 def int_validator(v: Any) -> int:
     if isinstance(v, int) and not (v is True or v is False):
         return v
 
+    # see https://github.com/pydantic/pydantic/issues/1477 and in turn, https://github.com/python/cpython/issues/95778
+    # this check should be unnecessary once patch releases are out for 3.7, 3.8, 3.9 and 3.10
+    # but better to check here until then.
+    # NOTICE: this does not fully protect user from the DOS risk since the standard library JSON implementation
+    # (and other std lib modules like xml) use `int()` and are likely called before this, the best workaround is to
+    # 1. update to the latest patch release of python once released, 2. use a different JSON library like ujson
+    if isinstance(v, (str, bytes, bytearray)) and len(v) > max_str_int:
+        raise errors.IntegerError()
+
     try:
         return int(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         raise errors.IntegerError()
 
 
@@ -149,6 +163,16 @@ def strict_float_validator(v: Any) -> float:
     if isinstance(v, float):
         return v
     raise errors.FloatError()
+
+
+def float_finite_validator(v: 'Number', field: 'ModelField', config: 'BaseConfig') -> 'Number':
+    allow_inf_nan = getattr(field.type_, 'allow_inf_nan', None)
+    if allow_inf_nan is None:
+        allow_inf_nan = config.allow_inf_nan
+
+    if allow_inf_nan is False and (math.isnan(v) or math.isinf(v)):
+        raise errors.NumberNotFiniteError()
+    return v
 
 
 def number_multiple_validator(v: 'Number', field: 'ModelField') -> 'Number':
@@ -192,7 +216,7 @@ def anystr_length_validator(v: 'StrBytes', config: 'BaseConfig') -> 'StrBytes':
     v_len = len(v)
 
     min_length = config.min_anystr_length
-    if min_length is not None and v_len < min_length:
+    if v_len < min_length:
         raise errors.AnyStrMinLengthError(limit_value=min_length)
 
     max_length = config.max_anystr_length
@@ -204,6 +228,10 @@ def anystr_length_validator(v: 'StrBytes', config: 'BaseConfig') -> 'StrBytes':
 
 def anystr_strip_whitespace(v: 'StrBytes') -> 'StrBytes':
     return v.strip()
+
+
+def anystr_upper(v: 'StrBytes') -> 'StrBytes':
+    return v.upper()
 
 
 def anystr_lower(v: 'StrBytes') -> 'StrBytes':
@@ -469,11 +497,11 @@ def make_literal_validator(type_: Any) -> Callable[[Any], Any]:
 def constr_length_validator(v: 'StrBytes', field: 'ModelField', config: 'BaseConfig') -> 'StrBytes':
     v_len = len(v)
 
-    min_length = field.type_.min_length or config.min_anystr_length
-    if min_length is not None and v_len < min_length:
+    min_length = field.type_.min_length if field.type_.min_length is not None else config.min_anystr_length
+    if v_len < min_length:
         raise errors.AnyStrMinLengthError(limit_value=min_length)
 
-    max_length = field.type_.max_length or config.max_anystr_length
+    max_length = field.type_.max_length if field.type_.max_length is not None else config.max_anystr_length
     if max_length is not None and v_len > max_length:
         raise errors.AnyStrMaxLengthError(limit_value=max_length)
 
@@ -484,6 +512,14 @@ def constr_strip_whitespace(v: 'StrBytes', field: 'ModelField', config: 'BaseCon
     strip_whitespace = field.type_.strip_whitespace or config.anystr_strip_whitespace
     if strip_whitespace:
         v = v.strip()
+
+    return v
+
+
+def constr_upper(v: 'StrBytes', field: 'ModelField', config: 'BaseConfig') -> 'StrBytes':
+    upper = field.type_.to_upper or config.anystr_upper
+    if upper:
+        v = v.upper()
 
     return v
 
@@ -555,10 +591,16 @@ def pattern_validator(v: Any) -> Pattern[str]:
 NamedTupleT = TypeVar('NamedTupleT', bound=NamedTuple)
 
 
-def make_namedtuple_validator(namedtuple_cls: Type[NamedTupleT]) -> Callable[[Tuple[Any, ...]], NamedTupleT]:
+def make_namedtuple_validator(
+    namedtuple_cls: Type[NamedTupleT], config: Type['BaseConfig']
+) -> Callable[[Tuple[Any, ...]], NamedTupleT]:
     from .annotated_types import create_model_from_namedtuple
 
-    NamedTupleModel = create_model_from_namedtuple(namedtuple_cls)
+    NamedTupleModel = create_model_from_namedtuple(
+        namedtuple_cls,
+        __config__=config,
+        __module__=namedtuple_cls.__module__,
+    )
     namedtuple_cls.__pydantic_model__ = NamedTupleModel  # type: ignore[attr-defined]
 
     def namedtuple_validator(values: Tuple[Any, ...]) -> NamedTupleT:
@@ -575,26 +617,31 @@ def make_namedtuple_validator(namedtuple_cls: Type[NamedTupleT]) -> Callable[[Tu
 
 
 def make_typeddict_validator(
-    typeddict_cls: Type['TypedDict'], config: Type['BaseConfig']
+    typeddict_cls: Type['TypedDict'], config: Type['BaseConfig']  # type: ignore[valid-type]
 ) -> Callable[[Any], Dict[str, Any]]:
     from .annotated_types import create_model_from_typeddict
 
-    TypedDictModel = create_model_from_typeddict(typeddict_cls, __config__=config)
+    TypedDictModel = create_model_from_typeddict(
+        typeddict_cls,
+        __config__=config,
+        __module__=typeddict_cls.__module__,
+    )
     typeddict_cls.__pydantic_model__ = TypedDictModel  # type: ignore[attr-defined]
 
-    def typeddict_validator(values: 'TypedDict') -> Dict[str, Any]:
+    def typeddict_validator(values: 'TypedDict') -> Dict[str, Any]:  # type: ignore[valid-type]
         return TypedDictModel.parse_obj(values).dict(exclude_unset=True)
 
     return typeddict_validator
 
 
 class IfConfig:
-    def __init__(self, validator: AnyCallable, *config_attr_names: str) -> None:
+    def __init__(self, validator: AnyCallable, *config_attr_names: str, ignored_value: Any = False) -> None:
         self.validator = validator
         self.config_attr_names = config_attr_names
+        self.ignored_value = ignored_value
 
     def check(self, config: Type['BaseConfig']) -> bool:
-        return any(getattr(config, name) not in {None, False} for name in self.config_attr_names)
+        return any(getattr(config, name) not in {None, self.ignored_value} for name in self.config_attr_names)
 
 
 # order is important here, for example: bool is a subclass of int so has to come first, datetime before date same,
@@ -607,6 +654,7 @@ _VALIDATORS: List[Tuple[Type[Any], List[Any]]] = [
         [
             str_validator,
             IfConfig(anystr_strip_whitespace, 'anystr_strip_whitespace'),
+            IfConfig(anystr_upper, 'anystr_upper'),
             IfConfig(anystr_lower, 'anystr_lower'),
             IfConfig(anystr_length_validator, 'min_anystr_length', 'max_anystr_length'),
         ],
@@ -616,13 +664,14 @@ _VALIDATORS: List[Tuple[Type[Any], List[Any]]] = [
         [
             bytes_validator,
             IfConfig(anystr_strip_whitespace, 'anystr_strip_whitespace'),
+            IfConfig(anystr_upper, 'anystr_upper'),
             IfConfig(anystr_lower, 'anystr_lower'),
             IfConfig(anystr_length_validator, 'min_anystr_length', 'max_anystr_length'),
         ],
     ),
     (bool, [bool_validator]),
     (int, [int_validator]),
-    (float, [float_validator]),
+    (float, [float_validator, IfConfig(float_finite_validator, 'allow_inf_nan', ignored_value=True)]),
     (Path, [path_validator]),
     (datetime, [parse_datetime]),
     (date, [parse_date]),
@@ -651,18 +700,19 @@ def find_validators(  # noqa: C901 (ignore complexity)
 ) -> Generator[AnyCallable, None, None]:
     from .dataclasses import is_builtin_dataclass, make_dataclass_validator
 
-    if type_ is Any:
+    if type_ is Any or type_ is object:
         return
     type_type = type_.__class__
     if type_type == ForwardRef or type_type == TypeVar:
         return
-    if type_ in NONE_TYPES:
+
+    if is_none_type(type_):
         yield none_validator
         return
-    if type_ is Pattern:
+    if type_ is Pattern or type_ is re.Pattern:
         yield pattern_validator
         return
-    if type_ is Hashable:
+    if type_ is Hashable or type_ is CollectionsHashable:
         yield hashable_validator
         return
     if is_callable_type(type_):
@@ -682,7 +732,7 @@ def find_validators(  # noqa: C901 (ignore complexity)
         return
     if is_namedtuple(type_):
         yield tuple_validator
-        yield make_namedtuple_validator(type_)
+        yield make_namedtuple_validator(type_, config)
         return
     if is_typeddict(type_):
         yield make_typeddict_validator(type_, config)
@@ -690,7 +740,7 @@ def find_validators(  # noqa: C901 (ignore complexity)
 
     class_ = get_class(type_)
     if class_ is not None:
-        if isinstance(class_, type):
+        if class_ is not Any and isinstance(class_, type):
             yield make_class_validator(class_)
         else:
             yield any_class_validator

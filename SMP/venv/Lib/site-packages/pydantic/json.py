@@ -1,22 +1,16 @@
 import datetime
-import re
-import sys
 from collections import deque
 from decimal import Decimal
 from enum import Enum
 from ipaddress import IPv4Address, IPv4Interface, IPv4Network, IPv6Address, IPv6Interface, IPv6Network
 from pathlib import Path
+from re import Pattern
 from types import GeneratorType
 from typing import Any, Callable, Dict, Type, Union
 from uuid import UUID
 
-if sys.version_info >= (3, 7):
-    Pattern = re.Pattern
-else:
-    # python 3.6
-    Pattern = re.compile('a').__class__
-
 from .color import Color
+from .networks import NameEmail
 from .types import SecretBytes, SecretStr
 
 __all__ = 'pydantic_encoder', 'custom_pydantic_encoder', 'timedelta_isoformat'
@@ -32,7 +26,7 @@ def decimal_encoder(dec_value: Decimal) -> Union[int, float]:
 
     This is useful when we use ConstrainedDecimal to represent Numeric(x,0)
     where a integer (but not int typed) is used. Encoding this as a float
-    results in failed round-tripping between encode and prase.
+    results in failed round-tripping between encode and parse.
     Our Id type is a prime example of this.
 
     >>> decimal_encoder(Decimal("1.0"))
@@ -65,6 +59,7 @@ ENCODERS_BY_TYPE: Dict[Type[Any], Callable[[Any], Any]] = {
     IPv6Address: str,
     IPv6Interface: str,
     IPv6Network: str,
+    NameEmail: str,
     Path: str,
     Pattern: lambda o: o.pattern,
     SecretBytes: str,
@@ -102,6 +97,7 @@ def custom_pydantic_encoder(type_encoders: Dict[Any, Callable[[Type[Any]], Any]]
             encoder = type_encoders[base]
         except KeyError:
             continue
+
         return encoder(obj)
     else:  # We have exited the for loop without finding a suitable encoder
         return pydantic_encoder(obj)
@@ -109,8 +105,8 @@ def custom_pydantic_encoder(type_encoders: Dict[Any, Callable[[Type[Any]], Any]]
 
 def timedelta_isoformat(td: datetime.timedelta) -> str:
     """
-    ISO 8601 encoding for timedeltas.
+    ISO 8601 encoding for Python timedelta object.
     """
     minutes, seconds = divmod(td.seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    return f'P{td.days}DT{hours:d}H{minutes:d}M{seconds:d}.{td.microseconds:06d}S'
+    return f'{"-" if td.days < 0 else ""}P{abs(td.days)}DT{hours:d}H{minutes:d}M{seconds:d}.{td.microseconds:06d}S'
