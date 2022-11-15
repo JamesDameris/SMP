@@ -50,10 +50,10 @@ async def reload(request):
 
 
 routes = [
-    Route("/", inference, methods=["POSt"]),
+    Route("/", inference, methods=["POST"]),
     Route("/reload", reload, methods=["GET"])
 ]
 app = Starlette(debug=True, routes=routes)
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", port=80, log_level="trace", reload=True)
+    uvicorn.run("api:app", port=12709, log_level="trace", reload=True)
