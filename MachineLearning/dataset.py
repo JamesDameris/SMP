@@ -17,7 +17,7 @@ def getitem(item_name="CS:GO Weapon Case"):
     return np.asarray(vals)
 
 
-def getdata(items=[("★ M9 Bayonet | Fade (Factory New)", "Knife")], lookback=60, split=0.8):
+def getdata(items=[("★ M9 Bayonet | Fade (Factory New)", "Knife")], lookback=60, split=0.8, lookahead=30):
     timeinputs = []
     idxinputs = []
     typeinputs = []
@@ -26,12 +26,12 @@ def getdata(items=[("★ M9 Bayonet | Fade (Factory New)", "Knife")], lookback=6
     for item in items:
         item, type_ = item
         v = getitem(item)
-        for i in range(lookback, len(v)):
+        for i in range(lookback, len(v)+1-lookahead):
             timeinputs.append(v[i - lookback:i])
             idxinputs.append(i)
             typeinputs.append(type_)
             totidxinputs.append(len(v))
-            y.append(int(v[i] > (sum(v[i-lookback:i])/lookback)))
+            y.append(v[i+lookahead-1])
     timeinputs = np.asarray(timeinputs)
     idxinputs = np.asarray(idxinputs)
     typeinputs = np.asarray(typeinputs)

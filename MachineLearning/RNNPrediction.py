@@ -44,7 +44,7 @@ def loaddata(name="data"):
     return xtrain, ytrain, xtest, ytest, xtrain[0].shape[1]
 
 
-if False:
+if len(sys.argv)>1 and sys.argv[1]=="new":
     lookback = 60
     '''xtrain, ytrain, xtest, ytest = dataset.getdata(lookback=lookback, items=[
         ("★ M9 Bayonet | Fade (Factory New)", "Knife"),
@@ -156,7 +156,7 @@ def getmodel():
     for i in range(20):
         x = layers.Dense(20)(x)
 
-    x = layers.Dense(1, activation="sigmoid")(x)
+    x = layers.Dense(1, activation="relu")(x)
     m = keras.Model(inputs=[timeinput, idxinput, typeinput, totalidxinput], outputs=x)
 
     m.build((None, lookback, 1))
@@ -167,7 +167,7 @@ def getmodel():
 def trainmodel():
     model = getmodel()
 
-    model.compile(optimizer="adam", loss="binary_crossentropy",
+    model.compile(optimizer="adam", loss=keras.metrics.MeanAbsolutePercentageError(),
                   metrics=["accuracy", keras.metrics.RootMeanSquaredError(),
                            keras.metrics.MeanAbsolutePercentageError(),
                            "binary_crossentropy"])
